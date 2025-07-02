@@ -1,0 +1,2752 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StudiumOS - DEMO</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+    <style>
+        /* CSS for StudiumOS Dashboard */
+        :root {
+            --primary-bg: #f0f2f5;
+            --secondary-bg: #ffffff;
+            --tertiary-bg: #e0e2e5; /* For widget resizing handles or subtle backgrounds */
+            --text-color: #333;
+            --text-color-light: #666;
+            --border-color: #e0e0e0;
+            --accent-color: #007bff; /* Default accent color */
+            --accent-color-dark: #0056b3;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            --border-radius: 8px;
+            --transition-speed: 0.3s ease;
+            --grid-gap: 20px;
+        }
+
+        [data-theme='dark'] {
+            --primary-bg: #121212; /* Almost black */
+            --secondary-bg: #1e1e1e; /* Darker grey */
+            --tertiary-bg: #333333; /* Darker grey for subtle elements */
+            --text-color: #e0e0e0;
+            --text-color-light: #b0b0b0;
+            --border-color: #3a3a4c;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Dynamic Accent Color Application */
+        /* Removed: [data-accent-color] rule is no longer needed as accent color is fixed */
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background-color: var(--primary-bg); /* Ensure body background changes */
+            transition: background-color var(--transition-speed), color var(--transition-speed); /* Removed background-image transition */
+            overflow: hidden; /* Prevent body scroll, content will scroll within sections */
+            /* Removed: background-size, background-position, background-attachment */
+        }
+
+        #app-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+            background-color: var(--primary-bg); /* Ensure app container background changes */
+        }
+
+        /* Main Dashboard Area - now takes full height */
+        #dashboard-main {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto; /* Allows scrolling for the main content area */
+            padding: var(--grid-gap);
+            transition: background-color var(--transition-speed);
+        }
+
+        /* Floating Action Button for Add Widgets */
+        #add-widget-fab {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 40px; /* Smaller size */
+            height: 40px; /* Smaller size */
+            border-radius: 50%;
+            background-color: var(--accent-color);
+            color: white;
+            font-size: 1.3em; /* Smaller icon */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border: none;
+            box-shadow: var(--shadow);
+            cursor: pointer;
+            z-index: 500; /* Below overlays, above dashboard */
+            transition: background-color 0.2s ease, transform 0.2s ease;
+        }
+        #add-widget-fab:hover {
+            background-color: var(--accent-color-dark);
+            transform: translateY(-2px);
+        }
+        #add-widget-fab:active {
+            transform: scale(0.95);
+        }
+
+        /* Floating Action Button for Settings */
+        #settings-fab {
+            position: fixed;
+            bottom: 20px;
+            right: 70px; /* Adjusted position for smaller FAB */
+            width: 40px; /* Smaller size */
+            height: 40px; /* Smaller size */
+            border-radius: 50%;
+            background-color: var(--accent-color);
+            color: white;
+            font-size: 1.3em; /* Smaller icon */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border: none;
+            box-shadow: var(--shadow);
+            cursor: pointer;
+            z-index: 500;
+            transition: background-color 0.2s ease, transform 0.2s ease;
+        }
+        #settings-fab:hover {
+            background-color: var(--accent-color-dark);
+            transform: translateY(-2px);
+        }
+        #settings-fab:active {
+            transform: scale(0.95);
+        }
+
+
+        #widget-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); /* Responsive grid */
+            grid-auto-rows: minmax(250px, auto); /* Flexible row height based on content */
+            gap: var(--grid-gap);
+            flex-grow: 1;
+            min-height: 100%; /* Ensure grid takes full height of main */
+            align-content: start; /* Ensures widgets align to the top */
+            position: relative; /* For drag/resize positioning */
+        }
+
+        /* Widget Styles */
+        .widget {
+            background-color: var(--secondary-bg);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            position: absolute; /* Changed to absolute for precise positioning during drag/resize */
+            display: flex;
+            flex-direction: column;
+            /* Only transition properties that should animate normally, not position/size */
+            transition: box-shadow var(--transition-speed), background-color var(--transition-speed), border-color var(--transition-speed), transform var(--transition-speed);
+            min-width: 250px;
+            min-height: 200px;
+            border: 1px solid var(--border-color);
+            padding: 0; /* No padding on the widget itself, content will have padding */
+            cursor: grab; /* Indicates draggable */
+        }
+
+
+        .widget.dragging {
+            cursor: grabbing;
+            z-index: 101; /* Bring dragged widget to front */
+            box-shadow: var(--shadow), 0 0 0 3px var(--accent-color); /* Highlight when dragging */
+            opacity: 0.8;
+        }
+
+        .widget-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+            border-bottom: 1px solid var(--tertiary-bg);
+            flex-shrink: 0; /* Prevent header from shrinking */
+            background-color: var(--secondary-bg); /* Ensure header background matches widget */
+            border-top-left-radius: var(--border-radius);
+            border-top-right-radius: var(--border-radius);
+            transition: background-color var(--transition-speed), border-color var(--transition-speed);
+        }
+
+        .widget-header h3 {
+            font-size: 1.1em;
+            color: var(--accent-color);
+            font-weight: 600;
+            white-space: nowrap; /* Prevent title wrapping */
+            overflow: hidden;
+            text-overflow: ellipsis;
+            transition: color var(--transition-speed);
+        }
+
+        .widget-actions {
+            display: flex;
+            gap: 5px;
+            flex-shrink: 0;
+        }
+
+        .widget-actions button {
+            background: none;
+            border: none;
+            color: var(--text-color-light);
+            cursor: pointer;
+            font-size: 0.9em;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 4px;
+            transition: color var(--transition-speed), background-color var(--transition-speed);
+        }
+
+        .widget-actions button:hover {
+            color: var(--accent-color);
+            background-color: var(--tertiary-bg);
+        }
+
+        .widget-content {
+            flex-grow: 1;
+            overflow: auto; /* Allows content within widget to scroll if it overflows */
+            padding: 15px;
+            display: flex; /* Make content a flex container */
+            flex-direction: column; /* Arrange content vertically */
+            justify-content: flex-start; /* Align content to start */
+            align-items: stretch; /* Stretch content to fill width */
+        }
+
+        /* Resizer Handles */
+        .widget-resizer {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: var(--accent-color); /* Subtle accent color handles */
+            border: 1px solid var(--accent-color-dark);
+            opacity: 0; /* Hidden by default */
+            transition: opacity 0.2s ease;
+            z-index: 102; /* Above widget content */
+            border-radius: 2px;
+        }
+        .widget:hover .widget-resizer {
+            opacity: 0.7; /* Show on hover */
+        }
+
+        .resizer-br { bottom: 0; right: 0; cursor: nwse-resize; }
+        .resizer-bl { bottom: 0; left: 0; cursor: nesw-resize; }
+        .resizer-tr { top: 0; right: 0; cursor: nesw-resize; }
+        .resizer-tl { top: 0; left: 0; cursor: nwse-resize; }
+        .resizer-b { bottom: 0; left: 50%; transform: translateX(-50%); width: 80%; height: 8px; cursor: ns-resize; border-radius: 4px;}
+        .resizer-t { top: 0; left: 50%; transform: translateX(-50%); width: 80%; height: 8px; cursor: ns-resize; border-radius: 4px;}
+        .resizer-l { left: 0; top: 50%; transform: translateY(-50%); height: 80%; width: 8px; cursor: ew-resize; border-radius: 4px;}
+        .resizer-r { right: 0; top: 50%; transform: translateY(-50%); height: 80%; width: 8px; cursor: ew-resize; border-radius: 4px;}
+
+        /* Fullscreen Widget */
+        .widget.fullscreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 1000;
+            border-radius: 0;
+            box-shadow: none;
+            padding: 0; /* Remove padding, content inside handles padding */
+            background-color: var(--primary-bg); /* Use primary bg for fullscreen */
+            transition: all var(--transition-speed); /* Smooth transition to fullscreen */
+            cursor: default; /* Not draggable when fullscreen */
+        }
+
+        .widget.fullscreen .widget-header {
+            border-bottom: 1px solid var(--border-color); /* Ensure border for fullscreen */
+            border-radius: 0;
+        }
+
+        .widget.fullscreen .widget-content {
+            height: calc(100% - 60px); /* Adjust height for header, assuming 60px header height */
+            padding: 20px; /* More padding for fullscreen content */
+        }
+
+        .widget.fullscreen .widget-resizer {
+            display: none; /* Hide resizers when fullscreen */
+        }
+
+        /* Overlay button visibility only when fullscreen */
+        .widget-actions .overlay-btn {
+            display: none; /* Hidden by default */
+        }
+        .widget.fullscreen .widget-actions .overlay-btn {
+            display: inline-flex; /* Show when parent widget is fullscreen */
+        }
+
+
+        /* Widget Palette */
+        #widget-palette {
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 350px;
+            height: 100vh;
+            background-color: var(--secondary-bg);
+            box-shadow: -4px 0 12px rgba(0, 0, 0, 0.1);
+            z-index: 1001; /* Higher than fullscreen widget (1000) */
+            transform: translateX(100%);
+            transition: transform var(--transition-speed), background-color var(--transition-speed), border-color var(--transition-speed), box-shadow var(--transition-speed);
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            border-left: 1px solid var(--border-color);
+        }
+
+        #widget-palette.visible {
+            transform: translateX(0);
+        }
+
+        .palette-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--tertiary-bg);
+            transition: border-color var(--transition-speed);
+        }
+
+        .palette-header h2 {
+            font-size: 1.5em;
+            color: var(--accent-color);
+            transition: color var(--transition-speed);
+        }
+
+        .palette-header button {
+            background: none;
+            border: none;
+            font-size: 1.5em;
+            color: var(--text-color-light);
+            cursor: pointer;
+            transition: color var(--transition-speed);
+        }
+
+        .palette-header button:hover {
+            color: var(--accent-color);
+        }
+
+        .widget-list {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding-right: 10px; /* For scrollbar spacing */
+        }
+
+        .widget-option {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            margin-bottom: 10px;
+            background-color: var(--tertiary-bg);
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: background-color var(--transition-speed), transform 0.2s ease-out;
+            border: 1px solid transparent; /* For hover effect */
+        }
+
+        .widget-option:hover {
+            background-color: color-mix(in srgb, var(--tertiary-bg) 90%, var(--accent-color));
+            transform: translateY(-2px);
+            border-color: var(--accent-color);
+        }
+
+        .widget-option i {
+            font-size: 1.8em;
+            margin-right: 15px;
+            color: var(--accent-color);
+            transition: color var(--transition-speed);
+        }
+
+        .widget-option span {
+            font-size: 1.1em;
+            font-weight: 500;
+            color: var(--text-color);
+            transition: color var(--transition-speed);
+        }
+
+        /* Overlay Container */
+        #overlay-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: transparent; /* Changed to transparent */
+            backdrop-filter: none; /* Removed blur */
+            z-index: 1005; /* HIGHER than fullscreen widget (1000) */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity var(--transition-speed), visibility var(--transition-speed);
+            padding: var(--grid-gap); /* Padding for the overlay content */
+            pointer-events: none; /* Allow clicks to pass through to elements behind */
+        }
+
+        #overlay-container.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .overlay-widget {
+            background-color: var(--secondary-bg);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            max-width: 90%;
+            max-height: 90%;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            position: relative; /* For close button */
+            transition: all var(--transition-speed);
+            min-width: 300px;
+            min-height: 250px;
+            /* Allow overlays to be dragged/resized on top of fullscreen */
+            position: absolute; /* Changed to absolute for precise positioning during drag/resize */
+            cursor: grab;
+            pointer-events: auto; /* Re-enable pointer events for the widget itself */
+        }
+        .overlay-widget.dragging {
+            cursor: grabbing;
+            z-index: 101; /* Bring dragged widget to front */
+            box-shadow: var(--shadow), 0 0 0 3px var(--accent-color); /* Highlight when dragging */
+            opacity: 0.8;
+        }
+
+
+        .overlay-widget .widget-header {
+            border-bottom: 1px solid var(--tertiary-bg);
+            padding-left: 20px;
+            padding-right: 20px;
+        }
+        .overlay-widget .widget-header h3 {
+            color: var(--text-color); /* Overlays might have less prominent titles */
+        }
+
+        .overlay-widget .widget-content {
+            padding: 20px;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .overlay-widget .widget-actions button.close-overlay-btn {
+            color: var(--text-color-light);
+            font-size: 1.2em;
+        }
+        .overlay-widget .widget-actions button.close-overlay-btn:hover {
+            color: #dc3545; /* Red for close */
+            background-color: rgba(220, 53, 69, 0.1);
+        }
+        /* Hide fullscreen/overlay buttons on overlay widgets */
+        .overlay-widget .fullscreen-btn, .overlay-widget .overlay-btn, .overlay-widget .remove-btn {
+            display: none !important; /* Hide all other action buttons on overlay widgets */
+        }
+
+        /* Settings Modal */
+        #settings-modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: var(--secondary-bg);
+            padding: 30px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            z-index: 10001; /* Above all other elements */
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity var(--transition-speed), visibility var(--transition-speed);
+            min-width: 300px;
+            max-width: 90%;
+        }
+        #settings-modal.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--tertiary-bg);
+        }
+        .modal-header h2 {
+            font-size: 1.5em;
+            color: var(--accent-color);
+        }
+        .modal-header button {
+            background: none;
+            border: none;
+            font-size: 1.5em;
+            color: var(--text-color-light);
+            cursor: pointer;
+            transition: color var(--transition-speed);
+        }
+        .modal-header button:hover {
+            color: #dc3545;
+        }
+        .setting-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px dashed var(--tertiary-bg);
+        }
+        .setting-item:last-child {
+            border-bottom: none;
+        }
+        .setting-item label {
+            font-size: 1.1em;
+            color: var(--text-color);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .setting-item label i {
+            color: var(--accent-color);
+        }
+        /* Removed: input[type="color"] styling */
+        /* Removed: accent-color-options styling */
+        /* Removed: background-image-controls styling */
+
+
+        /* Specific Widget Styles (Example - Calculator) */
+        .calculator-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            flex-grow: 1;
+            padding-top: 10px; /* Space from display */
+        }
+
+        .calculator-display {
+            background-color: var(--tertiary-bg);
+            color: var(--text-color);
+            font-size: 2.2em; /* Default, adjusted by JS */
+            padding: 10px 15px;
+            border-radius: var(--border-radius);
+            text-align: right;
+            margin-bottom: 10px;
+            overflow-x: hidden; /* Hide horizontal overflow */
+            white-space: nowrap; /* Prevent wrapping */
+            text-overflow: ellipsis; /* Add ellipsis for overflow */
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            flex-shrink: 0;
+        }
+
+        .calculator-grid button {
+            background-color: var(--primary-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            font-size: 1.5em;
+            padding: 10px;
+            cursor: pointer;
+            transition: background-color 0.15s ease, transform 0.1s ease;
+            color: var(--text-color);
+        }
+
+        .calculator-grid button:hover {
+            background-color: var(--tertiary-bg);
+        }
+
+        .calculator-grid button:active {
+            transform: scale(0.98);
+        }
+
+        .calculator-grid button.operator {
+            background-color: var(--accent-color);
+            color: white;
+        }
+        .calculator-grid button.operator:hover {
+            background-color: var(--accent-color-dark);
+        }
+        .calculator-grid button.equal {
+            background-color: #28a745;
+            color: white;
+            grid-column: span 2;
+        }
+        .calculator-grid button.equal:hover {
+            background-color: #218838;
+        }
+        .calculator-grid button.clear {
+            background-color: #dc3545;
+            color: white;
+        }
+        .calculator-grid button.clear:hover {
+            background-color: #c82333;
+        }
+
+        /* Timer/Stopwatch Styles */
+        .timer-display, .stopwatch-display {
+            font-size: 4em; /* Default, adjusted by JS */
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 20px;
+            color: var(--text-color);
+            flex-grow: 1; /* Allow display to grow */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px; /* Added padding */
+            overflow: hidden; /* Hide horizontal overflow */
+            white-space: nowrap; /* Prevent wrapping */
+            text-overflow: ellipsis; /* Add ellipsis for overflow */
+        }
+
+        .timer-controls, .stopwatch-controls, .stopwatch-laps {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap; /* Allow controls to wrap */
+            flex-shrink: 0; /* Prevent controls from shrinking */
+        }
+
+        .timer-controls input {
+            flex-grow: 1; /* Allow inputs to grow/shrink */
+            max-width: 60px; /* Preferred max width */
+            padding: 8px;
+            border-radius: var(--border-radius);
+            border: 1px solid var(--border-color);
+            background-color: var(--primary-bg);
+            color: var(--text-color);
+            text-align: center;
+        }
+
+        .timer-controls button, .stopwatch-controls button {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: var(--border-radius);
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: background-color 0.2s ease, transform 0.1s ease;
+        }
+
+        .timer-controls button:hover, .stopwatch-controls button:hover {
+            background-color: var(--accent-color-dark);
+        }
+
+        .timer-controls button:active, .stopwatch-controls button:active {
+            transform: scale(0.98);
+        }
+
+        .stopwatch-laps {
+            margin-top: 20px;
+            flex-direction: column;
+            align-items: center;
+            max-height: 150px;
+            overflow-y: auto;
+            width: 100%;
+        }
+        .stopwatch-laps div {
+            width: 80%;
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px dashed var(--tertiary-bg);
+            color: var(--text-color-light);
+        }
+        .stopwatch-laps div:last-child {
+            border-bottom: none;
+        }
+
+        /* Calendar Widget */
+        .calendar-widget-content {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            justify-content: flex-start;
+        }
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--tertiary-bg);
+            flex-shrink: 0;
+        }
+        .calendar-header button {
+            background: none;
+            border: none;
+            font-size: 1.2em;
+            color: var(--accent-color);
+            cursor: pointer;
+        }
+        .calendar-header button:hover {
+            color: var(--accent-color-dark);
+        }
+        .calendar-header h4 {
+            font-size: 1.4em;
+            color: var(--text-color);
+            font-weight: 600;
+        }
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 5px;
+            flex-grow: 1;
+            text-align: center;
+        }
+        .calendar-grid div {
+            padding: 8px 0;
+            border-radius: 4px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 0.9em;
+            color: var(--text-color);
+        }
+        .calendar-grid .day-name {
+            font-weight: 600;
+            color: var(--accent-color);
+        }
+        .calendar-grid .day {
+            background-color: var(--tertiary-bg);
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        .calendar-grid .day:hover:not(.current-day) {
+            background-color: color-mix(in srgb, var(--tertiary-bg) 80%, var(--accent-color));
+        }
+        .calendar-grid .empty {
+            background: none;
+            cursor: default;
+        }
+        .calendar-grid .current-day {
+            background-color: var(--accent-color);
+            color: white;
+            font-weight: 700;
+            border: 1px solid var(--accent-color-dark);
+        }
+
+        /* Grade Calculator */
+        .grade-calc-input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-shrink: 0;
+        }
+        .grade-calc-input-group input {
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            background-color: var(--primary-bg);
+            color: var(--text-color);
+        }
+        .grade-calc-input-group button {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        .grade-calc-input-group button:hover {
+            background-color: var(--accent-color-dark);
+        }
+        .grade-items {
+            flex-grow: 1;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            padding: 10px;
+            margin-bottom: 15px;
+        }
+        .grade-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px dashed var(--tertiary-bg);
+        }
+        .grade-item:last-child {
+            border-bottom: none;
+        }
+        .grade-item button {
+            background: none;
+            border: none;
+            color: #dc3545;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+        .grade-result {
+            font-size: 1.5em;
+            font-weight: 700;
+            text-align: center;
+            color: var(--text-color);
+            margin-top: 10px;
+        }
+
+        /* Dictionary Widget */
+        .dictionary-search-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-shrink: 0;
+        }
+        .dictionary-search-group input {
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            background-color: var(--primary-bg);
+            color: var(--text-color);
+        }
+        .dictionary-search-group button {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+        }
+        .dictionary-search-group button:hover {
+            background-color: var(--accent-color-dark);
+        }
+        .dictionary-results {
+            flex-grow: 1;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            padding: 10px;
+            background-color: var(--primary-bg);
+        }
+        .dictionary-results h4 {
+            color: var(--accent-color);
+            margin-bottom: 5px;
+        }
+        .dictionary-results p {
+            margin-bottom: 10px;
+            color: var(--text-color-light);
+        }
+
+        /* Unit Converter Widget */
+        .unit-converter-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            flex-shrink: 0;
+        }
+        .unit-converter-controls select,
+        .unit-converter-controls input {
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            background-color: var(--primary-bg);
+            color: var(--text-color);
+            width: 100%; /* Ensure they take full width */
+        }
+        .unit-converter-result {
+            margin-top: 20px;
+            font-size: 1.5em;
+            font-weight: 700;
+            text-align: center;
+            color: var(--text-color);
+            flex-grow: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Clicker Widget */
+        .clicker-display {
+            font-size: 4em;
+            font-weight: 700;
+            text-align: center;
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-color);
+        }
+        .clicker-controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-shrink: 0;
+        }
+        .clicker-controls button {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: var(--border-radius);
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: background-color 0.2s ease, transform 0.1s ease;
+        }
+        .clicker-controls button:hover {
+            background-color: var(--accent-color-dark);
+        }
+
+        /* To Do List Widget */
+        .todo-input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-shrink: 0;
+        }
+        .todo-input-group input {
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            background-color: var(--primary-bg);
+            color: var(--text-color);
+        }
+        .todo-input-group button {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+        }
+        .todo-input-group button:hover {
+            background-color: var(--accent-color-dark);
+        }
+        .todo-list {
+            flex-grow: 1;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            padding: 10px;
+            background-color: var(--primary-bg);
+        }
+        .todo-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px dashed var(--tertiary-bg);
+        }
+        .todo-item:last-child {
+            border-bottom: none;
+        }
+        .todo-item input[type="checkbox"] {
+            margin-right: 10px;
+            cursor: pointer;
+            transform: scale(1.2);
+        }
+        .todo-item span {
+            flex-grow: 1;
+            color: var(--text-color);
+        }
+        .todo-item.completed span {
+            text-decoration: line-through;
+            color: var(--text-color-light);
+        }
+        .todo-item button {
+            background: none;
+            border: none;
+            color: #dc3545;
+            cursor: pointer;
+            font-size: 0.9em;
+            margin-left: 10px;
+        }
+
+        /* Notes Widget */
+        .notes-textarea {
+            width: 100%;
+            height: 100%;
+            padding: 15px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            background-color: var(--primary-bg);
+            color: var(--text-color);
+            font-family: 'Inter', sans-serif;
+            font-size: 1em;
+            resize: none; /* Allow manual resize if desired, but widget handles it */
+            flex-grow: 1;
+            line-height: 1.5;
+        }
+        .notes-textarea:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 1px var(--accent-color);
+        }
+
+
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--tertiary-bg);
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--accent-color);
+            border-radius: 10px;
+            transition: background var(--transition-speed);
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--accent-color-dark);
+        }
+
+        /* Media Queries for Responsiveness */
+        @media (max-width: 768px) {
+            #widget-grid {
+                grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+                gap: 15px;
+                padding: 15px;
+            }
+            #widget-palette {
+                width: 100%;
+                max-width: 300px;
+            }
+            .widget.fullscreen .widget-content {
+                padding: 15px;
+            }
+            #add-widget-fab {
+                bottom: 15px;
+                right: 15px;
+                width: 35px;
+                height: 35px;
+                font-size: 1.2em;
+            }
+            #settings-fab {
+                bottom: 15px;
+                right: 60px; /* Adjusted for smaller FABs */
+                width: 35px;
+                height: 35px;
+                font-size: 1.2em;
+            }
+        }
+
+        @media (max-width: 480px) {
+            #dashboard-main {
+                padding: 10px;
+            }
+            #widget-grid {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+            .widget.fullscreen .widget-content {
+                padding: 10px;
+            }
+            #add-widget-fab {
+                bottom: 10px;
+                right: 10px;
+                width: 30px;
+                height: 30px;
+                font-size: 1em;
+            }
+            #settings-fab {
+                bottom: 10px;
+                right: 50px; /* Adjusted for smaller FABs */
+                width: 30px;
+                height: 30px;
+                font-size: 1em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="app-container">
+        <main id="dashboard-main">
+            <section id="widget-grid">
+                </section>
+        </main>
+
+        <button id="settings-fab" title="Settings"><i class="fas fa-cog"></i></button>
+        <button id="add-widget-fab" title="Add New Widget"><i class="fas fa-plus"></i></button>
+
+        <div id="widget-palette" class="hidden">
+            <div class="palette-header">
+                <h2>Add Widgets (DEMO)</h2>
+                <button id="close-widget-palette-btn"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="widget-list">
+                </div>
+        </div>
+
+        <div id="overlay-container" class="hidden">
+            </div>
+
+        <div id="settings-modal" class="hidden">
+            <div class="modal-header">
+                <h2>Settings (DEMO)</h2>
+                <button id="close-settings-modal-btn"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="setting-item">
+                <label for="dark-mode-toggle"><i class="fas fa-moon"></i> Dark Mode</label>
+                <input type="checkbox" id="dark-mode-toggle">
+            </div>
+            <!-- Removed Accent Color Setting -->
+            <!-- Removed Background Image Setting -->
+        </div>
+
+    </div>
+
+    <script>
+        // JavaScript for StudiumOS Dashboard
+
+        // IIFE for encapsulation
+        (function() {
+            // --- Configuration & State Variables ---
+            const appContainer = document.getElementById('app-container');
+            const dashboardMain = document.getElementById('dashboard-main');
+            const widgetGrid = document.getElementById('widget-grid');
+            const widgetPalette = document.getElementById('widget-palette');
+            const widgetPaletteList = widgetPalette.querySelector('.widget-list');
+            const overlayContainer = document.getElementById('overlay-container');
+
+            const addWidgetFab = document.getElementById('add-widget-fab');
+            const settingsFab = document.getElementById('settings-fab');
+            const settingsModal = document.getElementById('settings-modal');
+            const closeSettingsModalBtn = document.getElementById('close-settings-modal-btn');
+            const darkModeToggle = document.getElementById('dark-mode-toggle');
+            // Removed: accentColorInputModal, accentColorOptions, backgroundImageInput, clearBackgroundBtn
+
+            const closeWidgetPaletteBtn = document.getElementById('close-widget-palette-btn');
+
+
+            let activeWidgets = {};
+            let nextWidgetId = 1;
+            let currentFullscreenWidgetId = null;
+            let isAddingOverlay = false;
+
+            // Widget Definitions
+            const widgetDefinitions = [
+                { id: 'timer', name: 'Timer', icon: 'fas fa-hourglass-half', component: createTimerWidget },
+                { id: 'stopwatch', name: 'Stopwatch', icon: 'fas fa-stopwatch', component: createStopwatchWidget },
+                { id: 'calculator', name: 'Calculator', icon: 'fas fa-calculator', component: createCalculatorWidget },
+                { id: 'grade-calculator', name: 'Grade Calculator', icon: 'fas fa-graduation-cap', component: createGradeCalculatorWidget },
+                { id: 'calendar', name: 'Calendar', icon: 'fas fa-calendar-alt', component: createCalendarWidget },
+                { id: 'dictionary', name: 'Dictionary', icon: 'fas fa-book', component: createDictionaryWidget },
+                { id: 'unit-converter', name: 'Unit Converter', icon: 'fas fa-exchange-alt', component: createUnitConverterWidget },
+                { id: 'clicker', name: 'Clicker', icon: 'fas fa-hand-pointer', component: createClickerWidget },
+                { id: 'todo-list', name: 'To Do List', icon: 'fas fa-tasks', component: createTodoListWidget },
+                { id: 'notes', name: 'Notes', icon: 'fas fa-sticky-note', component: createNotesWidget },
+            ];
+
+            // --- Utility Functions ---
+
+            /**
+             * Helper to format time for display.
+             * @param {number} totalSeconds
+             * @returns {string}
+             */
+            function formatTime(totalSeconds) {
+                const hours = Math.floor(totalSeconds / 3600);
+                const minutes = Math.floor((totalSeconds % 3600) / 60);
+                const seconds = totalSeconds % 60;
+                return [hours, minutes, seconds]
+                    .map(v => v < 10 ? '0' + v : v)
+                    .filter((v, i) => v !== '00' || i > 0 || (i === 0 && (hours > 0 || minutes > 0 || seconds > 0)))
+                    .join(':') || '00:00';
+            }
+
+            /**
+             * Saves a setting to local storage.
+             * @param {string} key
+             * @param {any} value
+             */
+            function saveSetting(key, value) {
+                localStorage.setItem(`studiumos_${key}`, JSON.stringify(value));
+            }
+
+            /**
+             * Loads a setting from local storage.
+             * @param {string} key
+             * @param {any} defaultValue
+             * @returns {any}
+             */
+            function loadSetting(key, defaultValue) {
+                const storedValue = localStorage.getItem(`studiumos_${key}`);
+                return storedValue ? JSON.parse(storedValue) : defaultValue;
+            }
+
+            /**
+             * Displays a custom message box instead of browser alert/confirm.
+             * @param {string} message The message to display.
+             * @param {function} [onConfirm] Callback for 'OK' button.
+             */
+            function showMessageBox(message, onConfirm = null) {
+                const messageBox = document.createElement('div');
+                messageBox.style.cssText = `
+                    position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+                    background-color: var(--secondary-bg); padding: 20px; border-radius: var(--border-radius);
+                    box-shadow: var(--shadow); z-index: 10000; text-align: center;
+                    color: var(--text-color); display: flex; flex-direction: column; gap: 15px;
+                    max-width: 90%;
+                `;
+                messageBox.innerHTML = `
+                    <p style="font-size: 1.2em;">${message}</p>
+                    <button class="message-box-ok-btn" style="background-color: var(--accent-color); color: white; border: none; padding: 10px 20px; border-radius: var(--border-radius); cursor: pointer; transition: background-color 0.2s ease;">OK</button>
+                `;
+                document.body.appendChild(messageBox);
+
+                const okBtn = messageBox.querySelector('.message-box-ok-btn');
+                okBtn.addEventListener('click', () => {
+                    messageBox.remove();
+                    if (onConfirm) onConfirm();
+                });
+                okBtn.addEventListener('mouseover', () => okBtn.style.backgroundColor = 'var(--accent-color-dark)');
+                okBtn.addEventListener('mouseout', () => okBtn.style.backgroundColor = 'var(--accent-color)');
+            }
+
+
+            // --- Theming Logic ---
+
+            /**
+             * Applies the selected theme (dark/light).
+             * @param {string} theme 'dark' or 'light'
+             */
+            function applyTheme(theme) {
+                appContainer.setAttribute('data-theme', theme);
+                darkModeToggle.checked = (theme === 'dark');
+                saveSetting('theme', theme);
+            }
+
+            // Removed: applyAccentColor function
+            // Removed: applyBackgroundImage function
+            // Removed: clearBackgroundImage function
+
+
+            // --- UI Event Handlers ---
+
+            // Settings Modal Controls
+            settingsFab.addEventListener('click', () => {
+                settingsModal.classList.add('visible');
+            });
+
+            closeSettingsModalBtn.addEventListener('click', () => {
+                settingsModal.classList.remove('visible');
+            });
+
+            darkModeToggle.addEventListener('change', (event) => {
+                applyTheme(event.target.checked ? 'dark' : 'light');
+            });
+
+            // Removed: accentColorInputModal event listener
+            // Removed: accentColorOptions event listeners
+            // Removed: backgroundImageInput event listener
+            // Removed: clearBackgroundBtn event listener
+
+
+            // FAB for Add Widgets
+            addWidgetFab.addEventListener('click', () => {
+                isAddingOverlay = false;
+                widgetPalette.classList.add('visible');
+            });
+
+            closeWidgetPaletteBtn.addEventListener('click', () => {
+                widgetPalette.classList.remove('visible');
+            });
+
+            // --- Widget Management Functions ---
+
+            /**
+             * Creates the common structure for any widget.
+             * @param {string} id Unique ID for the widget type.
+             * @param {string} name Display name for the widget.
+             * @param {HTMLElement} parentElement The parent element to append the widget to.
+             * @param {boolean} isOverlay Boolean indicating if it's an overlay widget.
+             * @returns {HTMLElement} The created widget element.
+             */
+            function createWidgetBase(id, name, parentElement, isOverlay = false) {
+                const widgetId = `widget-${id}-${nextWidgetId++}`;
+                const widgetDiv = document.createElement('div');
+                widgetDiv.classList.add('widget');
+                widgetDiv.setAttribute('data-widget-id', widgetId);
+                widgetDiv.setAttribute('data-widget-type', id);
+
+                let initialWidth = 300;
+                let initialHeight = 250;
+
+                // Specific initial dimensions for Calculator, Grade Calculator, and Unit Converter
+                if (id === 'calculator') {
+                    initialWidth = 350; // A bit wider to accommodate more buttons
+                    initialHeight = 450; // Taller for more rows
+                } else if (id === 'grade-calculator') {
+                    initialWidth = 380;
+                    initialHeight = 400;
+                } else if (id === 'unit-converter') {
+                    initialWidth = 350;
+                    initialHeight = 350;
+                }
+
+                const parentRect = parentElement.getBoundingClientRect();
+                const padding = 20;
+                let initialX = Math.random() * (parentRect.width - initialWidth - padding * 2) + padding;
+                let initialY = Math.random() * (parentRect.height - initialHeight - padding * 2) + padding;
+
+                initialX = Math.max(padding, initialX);
+                initialY = Math.max(padding, initialY);
+
+
+                widgetDiv.style.width = `${initialWidth}px`;
+                widgetDiv.style.height = `${initialHeight}px`;
+                widgetDiv.style.left = `${initialX}px`;
+                widgetDiv.style.top = `${initialY}px`;
+
+                // Add icon based on widget type
+                const widgetDefinition = widgetDefinitions.find(def => def.id === id);
+                const iconHtml = widgetDefinition && widgetDefinition.icon ? `<i class="${widgetDefinition.icon}" style="margin-right: 8px; color: var(--text-color-light);"></i>` : '';
+
+
+                widgetDiv.innerHTML = `
+                    <div class="widget-header">
+                        <h3>${iconHtml}${name}</h3>
+                        <div class="widget-actions">
+                            <button class="fullscreen-btn" title="Toggle Fullscreen"><i class="fas fa-expand"></i></button>
+                            <button class="overlay-btn" title="Add Overlay Widget"><i class="fas fa-layer-group"></i></button>
+                            <button class="remove-btn" title="Remove Widget"><i class="fas fa-times"></i></button>
+                        </div>
+                    </div>
+                    <div class="widget-content"></div>
+                    <div class="widget-resizer resizer-br"></div>
+                    <div class="widget-resizer resizer-bl"></div>
+                    <div class="widget-resizer resizer-tr"></div>
+                    <div class="widget-resizer resizer-tl"></div>
+                    <div class="widget-resizer resizer-b"></div>
+                    <div class="widget-resizer resizer-t"></div>
+                    <div class="widget-resizer resizer-l"></div>
+                    <div class="widget-resizer resizer-r"></div>
+                `;
+
+                parentElement.appendChild(widgetDiv);
+
+                // Attach event listeners to buttons and stop propagation
+                const removeBtn = widgetDiv.querySelector('.remove-btn');
+                const fullscreenBtn = widgetDiv.querySelector('.fullscreen-btn');
+                const overlayBtn = widgetDiv.querySelector('.overlay-btn');
+
+                removeBtn.addEventListener('click', (e) => {
+                    e.stopPropagation(); // Prevent drag
+                    removeWidget(widgetId);
+                });
+                fullscreenBtn.addEventListener('click', (e) => {
+                    e.stopPropagation(); // Prevent drag
+                    toggleFullscreen(widgetId);
+                });
+
+                overlayBtn.addEventListener('click', (e) => {
+                    e.stopPropagation(); // Prevent drag
+                    if (widgetDiv.classList.contains('fullscreen')) {
+                        isAddingOverlay = true;
+                        widgetPalette.classList.add('visible');
+                    } else {
+                        showMessageBox("This button only works when the widget is in fullscreen mode.");
+                    }
+                });
+
+                return widgetDiv;
+            }
+
+            /**
+             * Adds a widget to the dashboard or overlay container based on fullscreen state.
+             * @param {string} widgetType - The ID of the widget type.
+             */
+            function addWidget(widgetType) {
+                const definition = widgetDefinitions.find(def => def.id === widgetType);
+                if (!definition) {
+                    console.error('Unknown widget type:', widgetType);
+                    return;
+                }
+
+                let targetParent = widgetGrid;
+                let isCurrentAdditionOverlay = false;
+
+                if (isAddingOverlay && currentFullscreenWidgetId) {
+                    targetParent = overlayContainer;
+                    isCurrentAdditionOverlay = true;
+                    overlayContainer.classList.add('visible');
+                }
+
+                const widgetElement = createWidgetBase(definition.id, definition.name, targetParent, isCurrentAdditionOverlay);
+                const widgetContentDiv = widgetElement.querySelector('.widget-content');
+
+                if (isCurrentAdditionOverlay) {
+                    widgetElement.classList.add('overlay-widget');
+                    widgetElement.classList.remove('widget'); // Remove base widget class
+
+                    // Remove all existing action buttons, then add only the close-overlay-btn
+                    const headerActions = widgetElement.querySelector('.widget-actions');
+                    headerActions.innerHTML = ''; // Clear all buttons
+
+                    const closeOverlayBtn = document.createElement('button');
+                    closeOverlayBtn.classList.add('close-overlay-btn');
+                    closeOverlayBtn.title = "Close Overlay";
+                    closeOverlayBtn.innerHTML = '<i class="fas fa-times"></i>';
+                    headerActions.appendChild(closeOverlayBtn);
+                    closeOverlayBtn.addEventListener('click', (e) => {
+                        e.stopPropagation(); // Prevent drag
+                        if (widgetElement._overlayInstance && typeof widgetElement._overlayInstance.destroy === 'function') {
+                            widgetElement._overlayInstance.destroy();
+                        }
+                        widgetElement.remove();
+                        if (overlayContainer.children.length === 0) {
+                            overlayContainer.classList.remove('visible');
+                        }
+                    });
+                }
+
+                const widgetInstance = definition.component(widgetContentDiv, widgetElement.getAttribute('data-widget-id'));
+                activeWidgets[widgetElement.getAttribute('data-widget-id')] = {
+                    element: widgetElement,
+                    instance: widgetInstance
+                };
+
+                initDragAndResize(widgetElement);
+                widgetPalette.classList.remove('visible');
+                isAddingOverlay = false;
+            }
+
+            /**
+             * Removes a widget from the dashboard.
+             * @param {string} widgetId
+             */
+            function removeWidget(widgetId) {
+                const widget = activeWidgets[widgetId];
+                if (widget) {
+                    if (widget.instance && typeof widget.instance.destroy === 'function') {
+                        widget.instance.destroy();
+                    }
+                    widget.element.remove();
+                    delete activeWidgets[widgetId];
+
+                    if (currentFullscreenWidgetId === widgetId) {
+                        currentFullscreenWidgetId = null;
+                        if (overlayContainer.children.length === 0) {
+                            overlayContainer.classList.remove('visible');
+                        }
+                    }
+                    if (widget.element.classList.contains('overlay-widget') && overlayContainer.children.length === 0) {
+                        overlayContainer.classList.remove('visible');
+                    }
+                }
+            }
+
+            /**
+             * Toggles a widget to fullscreen mode.
+             * @param {string} widgetId
+             */
+            function toggleFullscreen(widgetId) {
+                const widget = activeWidgets[widgetId];
+                if (widget) {
+                    const isFullscreen = widget.element.classList.toggle('fullscreen');
+                    if (isFullscreen) {
+                        if (currentFullscreenWidgetId && currentFullscreenWidgetId !== widgetId) {
+                            toggleFullscreen(currentFullscreenWidgetId);
+                        }
+                        currentFullscreenWidgetId = widgetId;
+
+                        widget.originalState = {
+                            width: widget.element.style.width,
+                            height: widget.element.style.height,
+                            left: widget.element.style.left,
+                            top: widget.element.style.top,
+                            zIndex: widget.element.style.zIndex || ''
+                        };
+                        widget.element.style.zIndex = 1000;
+                        widget.element.style.removeProperty('width');
+                        widget.element.style.removeProperty('height');
+                        widget.element.style.removeProperty('left');
+                        widget.element.style.removeProperty('top');
+                    } else {
+                        currentFullscreenWidgetId = null;
+                        if (widget.originalState) {
+                            widget.element.style.width = widget.originalState.width;
+                            widget.element.style.height = widget.originalState.height;
+                            widget.element.style.left = widget.originalState.left;
+                            widget.element.style.top = widget.originalState.top;
+                            widget.element.style.zIndex = widget.originalState.zIndex;
+                            delete widget.originalState;
+                        }
+                        if (overlayContainer.children.length === 0) {
+                            overlayContainer.classList.remove('visible');
+                        }
+                    }
+                    if (widget.instance && typeof widget.instance.onResize === 'function') {
+                        widget.instance.onResize();
+                    }
+                }
+            }
+
+            /**
+             * Initializes draggable and resizable functionality for a widget.
+             * @param {HTMLElement} widgetElement
+             */
+            function initDragAndResize(widgetElement) {
+                let isDragging = false;
+                let isResizing = false;
+                let activeResizer = null;
+                let initialX, initialY, initialWidth, initialHeight, initialMouseX, initialMouseY;
+                let originalTransition = ''; // To store the element's original transition style
+
+                const widgetHeader = widgetElement.querySelector('.widget-header');
+                const resizers = widgetElement.querySelectorAll('.widget-resizer');
+
+                const startInteraction = (e) => {
+                    // Prevent interaction if fullscreen (main dashboard widgets) and not an overlay
+                    if (widgetElement.classList.contains('fullscreen') && !widgetElement.classList.contains('overlay-widget')) return;
+                    // This check is redundant if stopPropagation is used on buttons, but good for safety
+                    if (e.target.closest('.widget-actions')) return;
+
+                    e.preventDefault(); // Prevent default browser drag behavior (e.g., image dragging)
+                    e.stopPropagation(); // Stop propagation to prevent parent elements from also handling
+
+                    // Store original transition and disable it for smooth movement
+                    originalTransition = widgetElement.style.transition;
+                    widgetElement.style.transition = 'none';
+
+                    widgetElement.classList.add('dragging'); // Add dragging class for visual feedback
+
+                    initialMouseX = e.clientX;
+                    initialMouseY = e.clientY;
+                    initialX = widgetElement.offsetLeft; // Position relative to offsetParent
+                    initialY = widgetElement.offsetTop;   // Position relative to offsetParent
+                    initialWidth = widgetElement.offsetWidth;
+                    initialHeight = widgetElement.offsetHeight;
+
+                    // Bring to front while dragging/resizing
+                    if (widgetElement.classList.contains('overlay-widget')) {
+                        let maxZIndex = 1005; // Base z-index for overlay-container
+                        overlayContainer.querySelectorAll('.overlay-widget').forEach(ow => {
+                            const z = parseInt(window.getComputedStyle(ow).zIndex);
+                            if (!isNaN(z) && z > maxZIndex) maxZIndex = z;
+                        });
+                        widgetElement.style.zIndex = maxZIndex + 1;
+                    } else {
+                        widgetElement.style.zIndex = 101;
+                    }
+                };
+
+                widgetHeader.addEventListener('mousedown', (e) => {
+                    // Only start drag if the click is not on an action button
+                    if (!e.target.closest('.widget-actions')) {
+                        isDragging = true;
+                        startInteraction(e);
+                    }
+                });
+
+                resizers.forEach(resizer => {
+                    resizer.addEventListener('mousedown', (e) => {
+                        isResizing = true;
+                        activeResizer = resizer.classList[1]; // e.g., 'resizer-br'
+                        startInteraction(e);
+                    });
+                });
+
+                document.addEventListener('mousemove', (e) => {
+                    if (isDragging) {
+                        const dx = e.clientX - initialMouseX;
+                        const dy = e.clientY - initialMouseY;
+
+                        let newX = initialX + dx;
+                        let newY = initialY + dy;
+
+                        // Get parent dimensions relative to its content area
+                        const parentElement = widgetElement.parentElement;
+                        const parentWidth = parentElement.offsetWidth;
+                        const parentHeight = parentElement.offsetHeight;
+                        const widgetWidth = widgetElement.offsetWidth;
+                        const widgetHeight = widgetElement.offsetHeight;
+
+                        // Constrain newX and newY within parent bounds
+                        newX = Math.max(0, Math.min(newX, parentWidth - widgetWidth));
+                        newY = Math.max(0, Math.min(newY, parentHeight - widgetHeight));
+
+                        widgetElement.style.left = `${newX}px`;
+                        widgetElement.style.top = `${newY}px`;
+                    } else if (isResizing) {
+                        const dx = e.clientX - initialMouseX;
+                        const dy = e.clientY - initialMouseY;
+
+                        let newWidth = initialWidth;
+                        let newHeight = initialHeight;
+                        let newX = initialX;
+                        let newY = initialY;
+
+                        // Minimum dimensions
+                        const minWidth = 250;
+                        const minHeight = 200;
+
+                        // Get parent dimensions for boundary checks
+                        const parentElement = widgetElement.parentElement;
+                        const parentWidth = parentElement.offsetWidth;
+                        const parentHeight = parentElement.offsetHeight;
+
+                        switch (activeResizer) {
+                            case 'resizer-br':
+                                newWidth = Math.max(minWidth, initialWidth + dx);
+                                newHeight = Math.max(minHeight, initialHeight + dy);
+                                break;
+                            case 'resizer-bl':
+                                newWidth = Math.max(minWidth, initialWidth - dx);
+                                newHeight = Math.max(minHeight, initialHeight + dy);
+                                newX = initialX + initialWidth - newWidth;
+                                break;
+                            case 'resizer-tr':
+                                newWidth = Math.max(minWidth, initialWidth + dx);
+                                newHeight = Math.max(minHeight, initialHeight - dy);
+                                newY = initialY + initialHeight - newHeight;
+                                break;
+                            case 'resizer-tl':
+                                newWidth = Math.max(minWidth, initialWidth - dx);
+                                newHeight = Math.max(minHeight, initialHeight - dy);
+                                newX = initialX + initialWidth - newWidth;
+                                newY = initialY + initialHeight - newHeight;
+                                break;
+                            case 'resizer-b':
+                                newHeight = Math.max(minHeight, initialHeight + dy);
+                                break;
+                            case 'resizer-t':
+                                newHeight = Math.max(minHeight, initialHeight - dy);
+                                newY = initialY + initialHeight - newHeight;
+                                break;
+                            case 'resizer-l':
+                                newWidth = Math.max(minWidth, initialWidth - dx);
+                                newX = initialX + initialWidth - newWidth;
+                                break;
+                            case 'resizer-r':
+                                newWidth = Math.max(minWidth, initialWidth + dx);
+                                break;
+                        }
+
+                        // Apply boundary checks for new position and size
+                        newX = Math.max(0, newX);
+                        newY = Math.max(0, newY);
+                        newWidth = Math.min(newWidth, parentWidth - newX);
+                        newHeight = Math.min(newHeight, parentHeight - newY);
+
+                        widgetElement.style.width = `${newWidth}px`;
+                        widgetElement.style.height = `${newHeight}px`;
+                        widgetElement.style.left = `${newX}px`;
+                        widgetElement.style.top = `${newY}px`;
+
+                        // IMPORTANT: Notify the widget's internal component of a resize
+                        const widgetInstance = activeWidgets[widgetElement.getAttribute('data-widget-id')]?.instance || widgetElement._overlayInstance;
+                        if (widgetInstance && typeof widgetInstance.onResize === 'function') {
+                            widgetInstance.onResize();
+                        }
+                    }
+                });
+
+                document.addEventListener('mouseup', () => {
+                    if (isDragging || isResizing) {
+                        isDragging = false;
+                        isResizing = false;
+                        activeResizer = null;
+                        widgetElement.classList.remove('dragging');
+                        widgetElement.style.transition = originalTransition; // Restore original transition
+
+                        // Reset z-index after dragging/resizing if not fullscreen
+                        if (!widgetElement.classList.contains('fullscreen') && !widgetElement.classList.contains('overlay-widget')) {
+                             widgetElement.style.zIndex = ''; // Revert to CSS default or saved z-index
+                        } else if (widgetElement.classList.contains('overlay-widget')) {
+                            // For overlays, reset to a default high z-index, but not necessarily the highest
+                            widgetElement.style.zIndex = 1006; // A default z-index for overlays, higher than overlay container
+                        }
+                    }
+                });
+            }
+
+            // --- Populate Widget Palette ---
+            function populateWidgetPalette() {
+                widgetPaletteList.innerHTML = ''; // Clear previous options
+                widgetDefinitions.forEach(def => {
+                    const optionDiv = document.createElement('div');
+                    optionDiv.classList.add('widget-option');
+                    optionDiv.setAttribute('data-widget-type', def.id);
+                    optionDiv.innerHTML = `<i class="${def.icon}"></i> <span>${def.name}</span>`;
+                    optionDiv.addEventListener('click', () => addWidget(def.id)); // Call addWidget
+                    widgetPaletteList.appendChild(optionDiv);
+                });
+            }
+
+            // --- Widget Component Functions ---
+
+            /**
+             * Timer Widget
+             * @param {HTMLElement} contentDiv
+             * @param {string} widgetId
+             * @returns {object} Public API for the widget
+             */
+            function createTimerWidget(contentDiv, widgetId) {
+                let timerInterval;
+                let totalSeconds = 0;
+                let isRunning = false;
+
+                contentDiv.innerHTML = `
+                    <div class="timer-display">00:00</div>
+                    <div class="timer-controls">
+                        <input type="number" min="0" max="99" placeholder="H" class="timer-input-h">
+                        <input type="number" min="0" max="59" placeholder="M" class="timer-input-m">
+                        <input type="number" min="0" max="59" placeholder="S" class="timer-input-s">
+                        <button class="set-btn">Set</button>
+                        <button class="start-pause-btn">Start</button>
+                        <button class="reset-btn">Reset</button>
+                    </div>
+                `;
+
+                const display = contentDiv.querySelector('.timer-display');
+                const inputH = contentDiv.querySelector('.timer-input-h');
+                const inputM = contentDiv.querySelector('.timer-input-m');
+                const inputS = contentDiv.querySelector('.timer-input-s');
+                const setBtn = contentDiv.querySelector('.set-btn');
+                const startPauseBtn = contentDiv.querySelector('.start-pause-btn');
+                const resetBtn = contentDiv.querySelector('.reset-btn');
+
+                // Apply flexible styling to inputs
+                inputH.style.cssText = `flex-grow: 1; max-width: 60px; padding: 8px; border-radius: var(--border-radius); border: 1px solid var(--border-color); background-color: var(--primary-bg); color: var(--text-color); text-align: center;`;
+                inputM.style.cssText = `flex-grow: 1; max-width: 60px; padding: 8px; border-radius: var(--border-radius); border: 1px solid var(--border-color); background-color: var(--primary-bg); color: var(--text-color); text-align: center;`;
+                inputS.style.cssText = `flex-grow: 1; max-width: 60px; padding: 8px; border-radius: var(--border-radius); border: 1px solid var(--border-color); background-color: var(--primary-bg); color: var(--text-color); text-align: center;`;
+
+
+                function updateDisplay() {
+                    display.textContent = formatTime(totalSeconds);
+                    if (totalSeconds <= 0 && isRunning) {
+                        clearInterval(timerInterval);
+                        isRunning = false;
+                        startPauseBtn.textContent = 'Start';
+                        display.textContent = '00:00';
+                        showMessageBox('Timer Finished!');
+                    }
+                }
+
+                function startTimer() {
+                    if (!isRunning && totalSeconds > 0) {
+                        isRunning = true;
+                        startPauseBtn.textContent = 'Pause';
+                        timerInterval = setInterval(() => {
+                            totalSeconds--;
+                            updateDisplay();
+                        }, 1000);
+                    }
+                }
+
+                function pauseTimer() {
+                    if (isRunning) {
+                        isRunning = false;
+                        startPauseBtn.textContent = 'Start';
+                        clearInterval(timerInterval);
+                    }
+                }
+
+                setBtn.addEventListener('click', () => {
+                    pauseTimer();
+                    const hours = parseInt(inputH.value) || 0;
+                    const minutes = parseInt(inputM.value) || 0;
+                    const seconds = parseInt(inputS.value) || 0;
+                    totalSeconds = (hours * 3600) + (minutes * 60) + seconds;
+                    updateDisplay();
+                });
+
+                startPauseBtn.addEventListener('click', () => {
+                    if (isRunning) {
+                        pauseTimer();
+                    } else {
+                        startTimer();
+                    }
+                });
+
+                resetBtn.addEventListener('click', () => {
+                    pauseTimer();
+                    totalSeconds = 0;
+                    inputH.value = '';
+                    inputM.value = '';
+                    inputS.value = '';
+                    updateDisplay();
+                });
+
+                // Initial display update
+                updateDisplay();
+
+                function adjustDisplayFontSize() {
+                    const widgetElement = display.closest('.widget'); // Get the parent widget element
+                    const currentHeight = display.offsetHeight;
+                    const currentWidth = display.offsetWidth;
+
+                    if (widgetElement && widgetElement.classList.contains('fullscreen')) {
+                        // Fullscreen mode: set a consistently large size
+                        display.style.fontSize = '8em'; // Large fixed size for fullscreen
+                    } else {
+                        // Regular mode: scale based on available space
+                        const sizeBasedOnHeight = currentHeight / 3; // Roughly 1/3 of height
+                        const sizeBasedOnWidth = currentWidth / 6; // Roughly 1/6 of width for 00:00:00
+                        display.style.fontSize = `${Math.min(sizeBasedOnHeight, sizeBasedOnWidth)}px`;
+                    }
+                }
+
+                // Call onResize initially and whenever widget is resized
+                adjustDisplayFontSize();
+
+                return {
+                    destroy: () => {
+                        clearInterval(timerInterval);
+                    },
+                    onResize: adjustDisplayFontSize
+                };
+            }
+
+            /**
+             * Stopwatch Widget
+             * @param {HTMLElement} contentDiv
+             * @param {string} widgetId
+             * @returns {object} Public API for the widget
+             */
+            function createStopwatchWidget(contentDiv, widgetId) {
+                let stopwatchInterval;
+                let elapsedMilliseconds = 0;
+                let isRunning = false;
+                let lapCounter = 1;
+                let laps = [];
+
+                contentDiv.innerHTML = `
+                    <div class="stopwatch-display">00:00:00</div>
+                    <div class="stopwatch-controls">
+                        <button class="start-stop-btn">Start</button>
+                        <button class="lap-reset-btn">Lap</button>
+                    </div>
+                    <div class="stopwatch-laps"></div>
+                `;
+
+                const display = contentDiv.querySelector('.stopwatch-display');
+                const startStopBtn = contentDiv.querySelector('.start-stop-btn');
+                const lapResetBtn = contentDiv.querySelector('.lap-reset-btn');
+                const lapsContainer = contentDiv.querySelector('.stopwatch-laps');
+
+                function formatStopwatchTime(ms) {
+                    const hours = Math.floor(ms / 3600000);
+                    const minutes = Math.floor((ms % 3600000) / 60000);
+                    const seconds = Math.floor((ms % 60000) / 1000);
+                    const milliseconds = Math.floor((ms % 1000) / 10); // Display 2 digits
+
+                    return [hours, minutes, seconds]
+                        .map(v => v < 10 ? '0' + v : v)
+                        .join(':') + `.${milliseconds < 10 ? '0' + milliseconds : milliseconds}`;
+                }
+
+                function updateDisplay() {
+                    display.textContent = formatStopwatchTime(elapsedMilliseconds);
+                }
+
+                function startStopwatch() {
+                    if (!isRunning) {
+                        isRunning = true;
+                        startStopBtn.textContent = 'Stop';
+                        lapResetBtn.textContent = 'Lap';
+                        stopwatchInterval = setInterval(() => {
+                            elapsedMilliseconds += 10; // Update every 10ms for smoother millisec display
+                            updateDisplay();
+                        }, 10);
+                    }
+                }
+
+                function stopStopwatch() {
+                    if (isRunning) {
+                        isRunning = false;
+                        startStopBtn.textContent = 'Start';
+                        lapResetBtn.textContent = 'Reset';
+                        clearInterval(stopwatchInterval);
+                    }
+                }
+
+                function resetStopwatch() {
+                    stopStopwatch();
+                    elapsedMilliseconds = 0;
+                    laps = [];
+                    lapCounter = 1;
+                    lapsContainer.innerHTML = '';
+                    updateDisplay();
+                }
+
+                function recordLap() {
+                    const lapTime = formatStopwatchTime(elapsedMilliseconds);
+                    const lapDiv = document.createElement('div');
+                    lapDiv.innerHTML = `<span>Lap ${lapCounter++}:</span> <span>${lapTime}</span>`;
+                    lapsContainer.prepend(lapDiv); // Add to top
+                }
+
+                startStopBtn.addEventListener('click', () => {
+                    if (isRunning) {
+                        stopStopwatch();
+                    } else {
+                        startStopwatch();
+                    }
+                });
+
+                lapResetBtn.addEventListener('click', () => {
+                    if (isRunning) {
+                        recordLap();
+                    } else {
+                        resetStopwatch();
+                    }
+                });
+
+                // Initial display update
+                updateDisplay();
+
+                function adjustDisplayFontSize() {
+                    const widgetElement = display.closest('.widget'); // Get the parent widget element
+                    const currentHeight = display.offsetHeight;
+                    const currentWidth = display.offsetWidth;
+
+                    if (widgetElement && widgetElement.classList.contains('fullscreen')) {
+                        // Fullscreen mode: set a consistently large size
+                        display.style.fontSize = '8em'; // Large fixed size for fullscreen
+                    } else {
+                        // Regular mode: scale based on available space
+                        const sizeBasedOnHeight = currentHeight / 3; // Roughly 1/3 of height
+                        const sizeBasedOnWidth = currentWidth / 8; // Roughly 1/8 of width for 00:00:00.00
+                        display.style.fontSize = `${Math.min(sizeBasedOnHeight, sizeBasedOnWidth)}px`;
+                    }
+                }
+
+                // Call onResize initially and whenever widget is resized
+                adjustDisplayFontSize();
+
+                return {
+                    destroy: () => {
+                        clearInterval(stopwatchInterval);
+                    },
+                    onResize: adjustDisplayFontSize
+                };
+            }
+
+            /**
+             * Scientific Calculator Widget
+             * @param {HTMLElement} contentDiv
+             * @param {string} widgetId
+             * @returns {object} Public API for the widget
+             */
+            function createCalculatorWidget(contentDiv, widgetId) {
+                let displayValue = '0';
+                let firstOperand = null;
+                let operator = null;
+                let waitingForSecondOperand = false;
+
+                contentDiv.innerHTML = `
+                    <div class="calculator-display">0</div>
+                    <div class="calculator-grid">
+                        <button class="clear">AC</button>
+                        <button class="operator" data-operator="neg">+/-</button>
+                        <button class="operator" data-operator="%">%</button>
+                        <button class="operator" data-operator="/">÷</button>
+
+                        <button>7</button>
+                        <button>8</button>
+                        <button>9</button>
+                        <button class="operator" data-operator="*">×</button>
+
+                        <button>4</button>
+                        <button>5</button>
+                        <button>6</button>
+                        <button class="operator" data-operator="-">-</button>
+
+                        <button>1</button>
+                        <button>2</button>
+                        <button>3</button>
+                        <button class="operator" data-operator="+">+</button>
+
+                        <button class="zero-btn">0</button>
+                        <button class="decimal">.</button>
+                        <button class="equal">=</button>
+
+                        <button class="operator" data-operator="sin">sin</button>
+                        <button class="operator" data-operator="cos">cos</button>
+                        <button class="operator" data-operator="tan">tan</button>
+                        <button class="operator" data-operator="log">log</button>
+                        <button class="operator" data-operator="sqrt">√</button>
+                        <button class="operator" data-operator="pow2">x²</button>
+                        <button class="operator" data-operator="pi">π</button>
+                        <button class="operator" data-operator="e">e</button>
+                    </div>
+                `;
+
+                const display = contentDiv.querySelector('.calculator-display');
+                const buttons = contentDiv.querySelectorAll('.calculator-grid button');
+
+                function updateDisplay() {
+                    display.textContent = displayValue;
+                }
+
+                function inputDigit(digit) {
+                    if (waitingForSecondOperand) {
+                        displayValue = digit;
+                        waitingForSecondOperand = false;
+                    } else {
+                        displayValue = displayValue === '0' ? digit : displayValue + digit;
+                    }
+                    updateDisplay();
+                }
+
+                function inputDecimal(dot) {
+                    if (waitingForSecondOperand) {
+                        displayValue = '0.';
+                        waitingForSecondOperand = false;
+                        updateDisplay();
+                        return;
+                    }
+                    if (!displayValue.includes(dot)) {
+                        displayValue += dot;
+                    }
+                    updateDisplay();
+                }
+
+                function clearCalculator() {
+                    displayValue = '0';
+                    firstOperand = null;
+                    operator = null;
+                    waitingForSecondOperand = false;
+                    updateDisplay();
+                }
+
+                function handleOperator(nextOperator) {
+                    const inputValue = parseFloat(displayValue);
+
+                    if (nextOperator === 'neg') {
+                        displayValue = (parseFloat(displayValue) * -1).toString();
+                        updateDisplay();
+                        return;
+                    }
+                    if (nextOperator === '%') {
+                        displayValue = (parseFloat(displayValue) / 100).toString();
+                        updateDisplay();
+                        return;
+                    }
+
+                    // Scientific functions
+                    if (['sin', 'cos', 'tan', 'log', 'sqrt', 'pow2', 'pi', 'e'].includes(nextOperator)) {
+                        let result;
+                        switch (nextOperator) {
+                            case 'sin': result = Math.sin(inputValue * Math.PI / 180); break; // Degrees
+                            case 'cos': result = Math.cos(inputValue * Math.PI / 180); break; // Degrees
+                            case 'tan': result = Math.tan(inputValue * Math.PI / 180); break; // Degrees
+                            case 'log': result = Math.log10(inputValue); break;
+                            case 'sqrt': result = Math.sqrt(inputValue); break;
+                            case 'pow2': result = Math.pow(inputValue, 2); break;
+                            case 'pi': result = Math.PI; break;
+                            case 'e': result = Math.E; break;
+                            default: return;
+                        }
+                        displayValue = result.toString();
+                        updateDisplay();
+                        return;
+                    }
+
+
+                    if (operator && waitingForSecondOperand) {
+                        operator = nextOperator;
+                        return;
+                    }
+
+                    if (firstOperand === null) {
+                        firstOperand = inputValue;
+                    } else if (operator) {
+                        const result = performCalculation[operator](firstOperand, inputValue);
+                        displayValue = `${parseFloat(result.toFixed(7))}`; // Limit float precision
+                        firstOperand = result;
+                    }
+
+                    waitingForSecondOperand = true;
+                    operator = nextOperator;
+                    updateDisplay();
+                }
+
+                const performCalculation = {
+                    '/': (firstOperand, secondOperand) => firstOperand / secondOperand,
+                    '*': (firstOperand, secondOperand) => firstOperand * secondOperand,
+                    '+': (firstOperand, secondOperand) => firstOperand + secondOperand,
+                    '-': (firstOperand, secondOperand) => firstOperand - secondOperand,
+                    '=': (firstOperand, secondOperand) => secondOperand // For equals, just return the second operand after calc
+                };
+
+
+                buttons.forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        const target = e.target;
+                        if (!target.matches('button')) return;
+
+                        if (target.classList.contains('operator')) {
+                            handleOperator(target.dataset.operator || target.textContent);
+                            return;
+                        }
+                        if (target.classList.contains('decimal')) {
+                            inputDecimal('.');
+                            return;
+                        }
+                        if (target.classList.contains('clear')) {
+                            clearCalculator();
+                            return;
+                        }
+                        if (target.classList.contains('equal')) {
+                            handleOperator('='); // Trigger calculation
+                            firstOperand = null; // Reset for next calculation
+                            operator = null;
+                            waitingForSecondOperand = false;
+                            return;
+                        }
+                        inputDigit(target.textContent);
+                    });
+                });
+
+                // Initial display
+                updateDisplay();
+
+                function adjustDisplayFontSize() {
+                    const currentWidth = display.offsetWidth;
+                    if (currentWidth < 180) { // Adjusted breakpoint
+                        display.style.fontSize = '1.5em';
+                    } else if (currentWidth < 280) { // Adjusted breakpoint
+                        display.style.fontSize = '2em';
+                    } else {
+                        display.style.fontSize = '2.2em';
+                    }
+                }
+
+                // Call onResize initially and whenever widget is resized
+                adjustDisplayFontSize();
+
+                return {
+                    destroy: () => {},
+                    onResize: adjustDisplayFontSize
+                };
+            }
+
+            /**
+             * Grade Calculator Widget
+             * @param {HTMLElement} contentDiv
+             * @param {string} widgetId
+             * @returns {object} Public API for the widget
+             */
+            function createGradeCalculatorWidget(contentDiv, widgetId) {
+                let grades = loadSetting(`grades-${widgetId}`, []);
+
+                contentDiv.innerHTML = `
+                    <div class="grade-calc-input-group">
+                        <input type="text" class="assignment-name-input" placeholder="Assignment Name">
+                        <input type="number" step="0.1" min="0" class="score-input" placeholder="Score (e.g., 95.5)">
+                        <input type="number" step="0.1" min="0" class="weight-input" placeholder="Weight (e.g., 20 for 20%)">
+                        <button class="add-grade-btn">Add Grade</button>
+                    </div>
+                    <div class="grade-items">
+                        </div>
+                    <div class="grade-result">Overall Grade: N/A</div>
+                `;
+
+                const nameInput = contentDiv.querySelector('.assignment-name-input');
+                const scoreInput = contentDiv.querySelector('.score-input');
+                const weightInput = contentDiv.querySelector('.weight-input');
+                const addBtn = contentDiv.querySelector('.add-grade-btn');
+                const gradeItemsContainer = contentDiv.querySelector('.grade-items');
+                const resultDisplay = contentDiv.querySelector('.grade-result');
+
+                function calculateGrade() {
+                    if (grades.length === 0) {
+                        resultDisplay.textContent = 'Overall Grade: N/A';
+                        return;
+                    }
+
+                    let totalWeightedScore = 0;
+                    let totalWeight = 0;
+
+                    grades.forEach(item => {
+                        totalWeightedScore += (item.score * item.weight);
+                        totalWeight += item.weight;
+                    });
+
+                    if (totalWeight === 0) {
+                        resultDisplay.textContent = 'Overall Grade: 0 (Total weight is zero)';
+                    } else {
+                        const overallGrade = totalWeightedScore / totalWeight;
+                        resultDisplay.textContent = `Overall Grade: ${overallGrade.toFixed(2)}%`;
+                    }
+                }
+
+                function renderGrades() {
+                    gradeItemsContainer.innerHTML = '';
+                    grades.forEach((item, index) => {
+                        const gradeDiv = document.createElement('div');
+                        gradeDiv.classList.add('grade-item');
+                        gradeDiv.innerHTML = `
+                            <span>${item.name}: ${item.score}% (Weight: ${item.weight}%)</span>
+                            <button data-index="${index}">Remove</button>
+                        `;
+                        gradeItemsContainer.appendChild(gradeDiv);
+                    });
+                    calculateGrade();
+                    saveSetting(`grades-${widgetId}`, grades);
+                }
+
+                addBtn.addEventListener('click', () => {
+                    const name = nameInput.value.trim();
+                    const score = parseFloat(scoreInput.value);
+                    const weight = parseFloat(weightInput.value);
+
+                    if (name && !isNaN(score) && !isNaN(weight) && score >= 0 && weight >= 0) {
+                        grades.push({ name, score, weight });
+                        nameInput.value = '';
+                        scoreInput.value = '';
+                        weightInput.value = '';
+                        renderGrades();
+                    } else {
+                        showMessageBox('Please enter valid assignment name, score, and weight.');
+                    }
+                });
+
+                gradeItemsContainer.addEventListener('click', (e) => {
+                    if (e.target.tagName === 'BUTTON' && e.target.textContent === 'Remove') {
+                        const indexToRemove = parseInt(e.target.dataset.index);
+                        grades.splice(indexToRemove, 1);
+                        renderGrades();
+                    }
+                });
+
+                renderGrades(); // Initial render
+
+                return {
+                    destroy: () => {},
+                    onResize: () => {}
+                };
+            }
+
+            /**
+             * Calendar Widget
+             * @param {HTMLElement} contentDiv
+             * @param {string} widgetId
+             * @returns {object} Public API for the widget
+             */
+            function createCalendarWidget(contentDiv, widgetId) {
+                let currentMonth = new Date().getMonth();
+                let currentYear = new Date().getFullYear();
+
+                contentDiv.innerHTML = `
+                    <div class="calendar-widget-content">
+                        <div class="calendar-header">
+                            <button class="prev-month"><i class="fas fa-chevron-left"></i></button>
+                            <h4 class="month-year-display"></h4>
+                            <button class="next-month"><i class="fas fa-chevron-right"></i></button>
+                        </div>
+                        <div class="calendar-grid">
+                            <div class="day-name">Sun</div>
+                            <div class="day-name">Mon</div>
+                            <div class="day-name">Tue</div>
+                            <div class="day-name">Wed</div>
+                            <div class="day-name">Thu</div>
+                            <div class="day-name">Fri</div>
+                            <div class="day-name">Sat</div>
+                            </div>
+                    </div>
+                `;
+
+                const monthYearDisplay = contentDiv.querySelector('.month-year-display');
+                const calendarGrid = contentDiv.querySelector('.calendar-grid');
+                const prevMonthBtn = contentDiv.querySelector('.prev-month');
+                const nextMonthBtn = contentDiv.querySelector('.next-month');
+
+                function renderCalendar() {
+                    calendarGrid.querySelectorAll('.day, .empty').forEach(el => {
+                        if (!el.classList.contains('day-name')) el.remove();
+                    }); // Clear previous days
+
+                    const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay(); // 0 for Sunday, 6 for Saturday
+                    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+                    const today = new Date();
+                    const todayDate = today.getDate();
+                    const todayMonth = today.getMonth();
+                    const todayYear = today.getFullYear();
+
+                    monthYearDisplay.textContent = new Date(currentYear, currentMonth).toLocaleString('default', { month: 'long', year: 'numeric' });
+
+                    // Add empty divs for preceding days
+                    for (let i = 0; i < firstDayOfMonth; i++) {
+                        const emptyDiv = document.createElement('div');
+                        emptyDiv.classList.add('empty');
+                        calendarGrid.appendChild(emptyDiv);
+                    }
+
+                    // Add days of the month
+                    for (let day = 1; day <= daysInMonth; day++) {
+                        const dayDiv = document.createElement('div');
+                        dayDiv.classList.add('day');
+                        dayDiv.textContent = day;
+
+                        if (day === todayDate && currentMonth === todayMonth && currentYear === todayYear) {
+                            dayDiv.classList.add('current-day');
+                        }
+                        calendarGrid.appendChild(dayDiv);
+                    }
+                }
+
+                prevMonthBtn.addEventListener('click', () => {
+                    currentMonth--;
+                    if (currentMonth < 0) {
+                        currentMonth = 11;
+                        currentYear--;
+                    }
+                    renderCalendar();
+                });
+
+                nextMonthBtn.addEventListener('click', () => {
+                    currentMonth++;
+                    if (currentMonth > 11) {
+                        currentMonth = 0;
+                        currentYear++;
+                    }
+                    renderCalendar();
+                });
+
+                renderCalendar(); // Initial render
+
+                return {
+                    destroy: () => {},
+                    onResize: () => {}
+                };
+            }
+
+            /**
+             * Dictionary Widget
+             * @param {HTMLElement} contentDiv
+             * @param {string} widgetId
+             * @returns {object} Public API for the widget
+             */
+            function createDictionaryWidget(contentDiv, widgetId) {
+                contentDiv.innerHTML = `
+                    <div class="dictionary-search-group">
+                        <input type="text" class="dictionary-input" placeholder="Search word...">
+                        <button class="dictionary-search-btn">Search</button>
+                    </div>
+                    <div class="dictionary-results">
+                        <p style="text-align: center; color: var(--text-color-light);">Enter a word and click search to find its definition.</p>
+                    </div>
+                `;
+
+                const searchInput = contentDiv.querySelector('.dictionary-input');
+                const searchBtn = contentDiv.querySelector('.dictionary-search-btn');
+                const resultsDiv = contentDiv.querySelector('.dictionary-results');
+
+                const DICTIONARY_API_URL = 'https://api.dictionaryapi.dev/api/v2/entries/en/'; // Free Dictionary API
+
+                async function searchWord(word) {
+                    resultsDiv.innerHTML = '<p style="text-align: center; color: var(--text-color-light);">Searching...</p>';
+                    try {
+                        const response = await fetch(`${DICTIONARY_API_URL}${word}`);
+                        if (!response.ok) {
+                            if (response.status === 404) {
+                                resultsDiv.innerHTML = '<p style="text-align: center; color: #dc3545;">Word not found. Please try another word.</p>';
+                            } else {
+                                throw new Error(`HTTP error! status: ${response.status}`);
+                            }
+                            return;
+                        }
+                        const data = await response.json();
+                        renderDictionaryResults(data);
+                    } catch (error) {
+                        console.error('Error fetching dictionary data:', error);
+                        resultsDiv.innerHTML = `<p style="text-align: center; color: #dc3545;">Error fetching definition: ${error.message}</p>`;
+                    }
+                }
+
+                function renderDictionaryResults(data) {
+                    resultsDiv.innerHTML = '';
+                    if (data && data.length > 0) {
+                        data.forEach(entry => {
+                            const wordTitle = document.createElement('h4');
+                            wordTitle.textContent = entry.word;
+                            resultsDiv.appendChild(wordTitle);
+
+                            if (entry.phonetics && entry.phonetics.length > 0) {
+                                entry.phonetics.forEach(phonetic => {
+                                    if (phonetic.text) {
+                                        const phoneticText = document.createElement('p');
+                                        phoneticText.textContent = `/${phonetic.text}/`;
+                                        resultsDiv.appendChild(phoneticText);
+                                    }
+                                    if (phonetic.audio) {
+                                        const audioBtn = document.createElement('button');
+                                        audioBtn.innerHTML = '<i class="fas fa-volume-up"></i> Listen';
+                                        audioBtn.style.cssText = `
+                                            background-color: var(--accent-color);
+                                            color: white;
+                                            border: none;
+                                            padding: 5px 10px;
+                                            border-radius: var(--border-radius);
+                                            cursor: pointer;
+                                            margin-left: 10px;
+                                            font-size: 0.9em;
+                                            transition: background-color 0.2s ease;
+                                        `;
+                                        audioBtn.onmouseover = () => audioBtn.style.backgroundColor = 'var(--accent-color-dark)';
+                                        audioBtn.onmouseout = () => audioBtn.style.backgroundColor = 'var(--accent-color)';
+                                        audioBtn.onclick = () => {
+                                            new Audio(phonetic.audio).play().catch(e => console.error("Audio playback failed:", e));
+                                        };
+                                        resultsDiv.appendChild(audioBtn);
+                                    }
+                                });
+                            }
+
+                            entry.meanings.forEach(meaning => {
+                                const partOfSpeech = document.createElement('p');
+                                partOfSpeech.innerHTML = `<strong><em>${meaning.partOfSpeech}</em></strong>`;
+                                resultsDiv.appendChild(partOfSpeech);
+
+                                meaning.definitions.forEach((def, i) => {
+                                    const definitionText = document.createElement('p');
+                                    definitionText.textContent = `${i + 1}. ${def.definition}`;
+                                    resultsDiv.appendChild(definitionText);
+                                    if (def.example) {
+                                        const exampleText = document.createElement('p');
+                                        exampleText.innerHTML = `<em>"${def.example}"</em>`;
+                                        exampleText.style.fontSize = '0.9em';
+                                        exampleText.style.marginLeft = '20px';
+                                        exampleText.style.color = 'var(--text-color-light)';
+                                        resultsDiv.appendChild(exampleText);
+                                    }
+                                });
+                            });
+                            resultsDiv.appendChild(document.createElement('hr')).style.cssText = 'margin: 15px 0; border-color: var(--tertiary-bg);';
+                        });
+                    } else {
+                        resultsDiv.innerHTML = '<p style="text-align: center; color: var(--text-color-light);">No results found.</p>';
+                    }
+                }
+
+                searchBtn.addEventListener('click', () => {
+                    const word = searchInput.value.trim();
+                    if (word) {
+                        searchWord(word);
+                    } else {
+                        resultsDiv.innerHTML = '<p style="text-align: center; color: var(--text-color-light);">Please enter a word to search.</p>';
+                    }
+                });
+
+                searchInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        searchBtn.click();
+                    }
+                });
+
+                return {
+                    destroy: () => {},
+                    onResize: () => {}
+                };
+            }
+
+            /**
+             * Unit Converter Widget
+             * @param {HTMLElement} contentDiv
+             * @param {string} widgetId
+             * @returns {object} Public API for the widget
+             */
+            function createUnitConverterWidget(contentDiv, widgetId) {
+                const units = {
+                    length: {
+                        'meters': 1, 'kilometers': 1000, 'centimeters': 0.01, 'millimeters': 0.001,
+                        'miles': 1609.34, 'yards': 0.9144, 'feet': 0.3048, 'inches': 0.0254
+                    },
+                    mass: {
+                        'kilograms': 1, 'grams': 0.001, 'milligrams': 0.000001,
+                        'pounds': 0.453592, 'ounces': 0.0283495
+                    },
+                    temperature: {
+                        // Conversions to/from Kelvin (base unit)
+                        'celsius': {
+                            toBase: (c) => c + 273.15,
+                            fromBase: (k) => k - 273.15
+                        },
+                        'fahrenheit': {
+                            toBase: (f) => (f - 32) * 5/9 + 273.15,
+                            fromBase: (k) => (k - 273.15) * 9/5 + 32
+                        },
+                        'kelvin': {
+                            toBase: (k) => k,
+                            fromBase: (k) => k
+                        }
+                    }
+                };
+
+                contentDiv.innerHTML = `
+                    <div class="unit-converter-controls">
+                        <select class="unit-type-select">
+                            <option value="length">Length</option>
+                            <option value="mass">Mass</option>
+                            <option value="temperature">Temperature</option>
+                        </select>
+
+                        <div>
+                            <input type="number" step="any" class="value-input" placeholder="Value">
+                            <select class="from-unit-select"></select>
+                        </div>
+                        <div>
+                            <select class="to-unit-select"></select>
+                        </div>
+                    </div>
+                    <div class="unit-converter-result">Result: 0</div>
+                `;
+
+                const unitTypeSelect = contentDiv.querySelector('.unit-type-select');
+                const valueInput = contentDiv.querySelector('.value-input');
+                const fromUnitSelect = contentDiv.querySelector('.from-unit-select');
+                const toUnitSelect = contentDiv.querySelector('.to-unit-select');
+                const resultDisplay = contentDiv.querySelector('.unit-converter-result');
+
+                function populateUnitOptions(type) {
+                    fromUnitSelect.innerHTML = '';
+                    toUnitSelect.innerHTML = '';
+                    const currentUnits = units[type];
+                    for (const unit in currentUnits) {
+                        const option1 = document.createElement('option');
+                        option1.value = unit;
+                        option1.textContent = unit.charAt(0).toUpperCase() + unit.slice(1); // Capitalize first letter
+                        fromUnitSelect.appendChild(option1);
+
+                        const option2 = document.createElement('option');
+                        option2.value = unit;
+                        option2.textContent = unit.charAt(0).toUpperCase() + unit.slice(1);
+                        toUnitSelect.appendChild(option2);
+                    }
+                }
+
+                function convertUnits() {
+                    const type = unitTypeSelect.value;
+                    const value = parseFloat(valueInput.value);
+                    const fromUnit = fromUnitSelect.value;
+                    const toUnit = toUnitSelect.value;
+
+                    if (isNaN(value)) {
+                        resultDisplay.textContent = 'Result: Invalid Input';
+                        return;
+                    }
+
+                    let convertedValue;
+
+                    if (type === 'temperature') {
+                        const tempUnits = units[type];
+                        if (!tempUnits[fromUnit] || !tempUnits[toUnit]) {
+                            resultDisplay.textContent = 'Result: Invalid Units';
+                            return;
+                        }
+                        // Convert to Kelvin first
+                        const valueInKelvin = tempUnits[fromUnit].toBase(value);
+                        // Convert from Kelvin to target unit
+                        convertedValue = tempUnits[toUnit].fromBase(valueInKelvin);
+                    } else {
+                        const conversionFactorFrom = units[type][fromUnit];
+                        const conversionFactorTo = units[type][toUnit];
+
+                        if (!conversionFactorFrom || !conversionFactorTo) {
+                            resultDisplay.textContent = 'Result: Invalid Units';
+                            return;
+                        }
+                        // Convert to base unit (e.g., meters or kilograms) then to target unit
+                        convertedValue = (value * conversionFactorFrom) / conversionFactorTo;
+                    }
+
+                    resultDisplay.textContent = `Result: ${convertedValue.toFixed(4)}`;
+                }
+
+                unitTypeSelect.addEventListener('change', () => {
+                    populateUnitOptions(unitTypeSelect.value);
+                    convertUnits();
+                });
+
+                valueInput.addEventListener('input', convertUnits);
+                fromUnitSelect.addEventListener('change', convertUnits);
+                toUnitSelect.addEventListener('change', convertUnits);
+
+                // Initial population and conversion
+                populateUnitOptions(unitTypeSelect.value);
+                convertUnits();
+
+                return {
+                    destroy: () => {},
+                    onResize: () => {}
+                };
+            }
+
+            /**
+             * Clicker Widget
+             * @param {HTMLElement} contentDiv
+             * @param {string} widgetId
+             * @returns {object} Public API for the widget
+             */
+            function createClickerWidget(contentDiv, widgetId) {
+                let count = loadSetting(`clicker-${widgetId}-count`, 0);
+
+                contentDiv.innerHTML = `
+                    <div class="clicker-display">${count}</div>
+                    <div class="clicker-controls">
+                        <button class="click-btn">Click Me!</button>
+                        <button class="reset-btn">Reset</button>
+                    </div>
+                `;
+
+                const display = contentDiv.querySelector('.clicker-display');
+                const clickBtn = contentDiv.querySelector('.clicker-btn');
+                const resetBtn = contentDiv.querySelector('.reset-btn');
+
+                clickBtn.addEventListener('click', () => {
+                    count++;
+                    display.textContent = count;
+                    saveSetting(`clicker-${widgetId}-count`, count);
+                });
+
+                resetBtn.addEventListener('click', () => {
+                    count = 0;
+                    display.textContent = count;
+                    saveSetting(`clicker-${widgetId}-count`, count);
+                });
+
+                return {
+                    destroy: () => {},
+                    onResize: () => {}
+                };
+            }
+
+            /**
+             * To Do List Widget
+             * @param {HTMLElement} contentDiv
+             * @param {string} widgetId
+             * @returns {object} Public API for the widget
+             */
+            function createTodoListWidget(contentDiv, widgetId) {
+                let todos = loadSetting(`todo-${widgetId}-tasks`, []);
+
+                contentDiv.innerHTML = `
+                    <div class="todo-input-group">
+                        <input type="text" class="todo-input" placeholder="Add a new task...">
+                        <button class="add-todo-btn">Add</button>
+                    </div>
+                    <div class="todo-list"></div>
+                `;
+
+                const todoInput = contentDiv.querySelector('.todo-input');
+                const addTodoBtn = contentDiv.querySelector('.add-todo-btn');
+                const todoListContainer = contentDiv.querySelector('.todo-list');
+
+                function renderTodos() {
+                    todoListContainer.innerHTML = '';
+                    todos.forEach((todo, index) => {
+                        const todoItemDiv = document.createElement('div');
+                        todoItemDiv.classList.add('todo-item');
+                        if (todo.completed) {
+                            todoItemDiv.classList.add('completed');
+                        }
+                        todoItemDiv.innerHTML = `
+                            <input type="checkbox" data-index="${index}" ${todo.completed ? 'checked' : ''}>
+                            <span>${todo.text}</span>
+                            <button data-index="${index}">Delete</button>
+                        `;
+                        todoListContainer.appendChild(todoItemDiv);
+                    });
+                    saveSetting(`todo-${widgetId}-tasks`, todos);
+                }
+
+                addTodoBtn.addEventListener('click', () => {
+                    const text = todoInput.value.trim();
+                    if (text) {
+                        todos.push({ text, completed: false });
+                        todoInput.value = '';
+                        renderTodos();
+                    } else {
+                        showMessageBox('Please enter a task.');
+                    }
+                });
+
+                todoInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        addTodoBtn.click();
+                    }
+                });
+
+                todoListContainer.addEventListener('change', (e) => {
+                    if (e.target.type === 'checkbox') {
+                        const index = parseInt(e.target.dataset.index);
+                        todos[index].completed = e.target.checked;
+                        renderTodos();
+                    }
+                });
+
+                todoListContainer.addEventListener('click', (e) => {
+                    if (e.target.tagName === 'BUTTON' && e.target.textContent === 'Delete') {
+                        const index = parseInt(e.target.dataset.index);
+                        todos.splice(index, 1);
+                        renderTodos();
+                    }
+                });
+
+                renderTodos(); // Initial render
+
+                return {
+                    destroy: () => {},
+                    onResize: () => {}
+                };
+            }
+
+            /**
+             * Notes Widget
+             * @param {HTMLElement} contentDiv
+             * @param {string} widgetId
+             * @returns {object} Public API for the widget
+             */
+            function createNotesWidget(contentDiv, widgetId) {
+                let noteContent = loadSetting(`notes-${widgetId}-content`, '');
+
+                contentDiv.innerHTML = `
+                    <textarea class="notes-textarea" placeholder="Write your notes here..."></textarea>
+                `;
+
+                const notesTextarea = contentDiv.querySelector('.notes-textarea');
+                notesTextarea.value = noteContent;
+
+                notesTextarea.addEventListener('input', () => {
+                    saveSetting(`notes-${widgetId}-content`, notesTextarea.value);
+                });
+
+                return {
+                    destroy: () => {},
+                    onResize: () => {}
+                };
+            }
+
+
+            // --- Initialization ---
+            function initializeApp() {
+                // Apply saved theme
+                const savedTheme = loadSetting('theme', 'light');
+                applyTheme(savedTheme);
+
+                // Removed: Apply saved accent color
+                // Removed: Apply saved background image
+
+                populateWidgetPalette();
+            }
+
+            initializeApp();
+
+        })(); // End of IIFE
+    </script>
+</body>
+</html>
